@@ -62,8 +62,8 @@ INSERT INTO orders (id, pet_id, quantity, ship_date, status, complete) VALUES
 
 -- Sample data for users
 INSERT INTO users (id, username, first_name, last_name, email, password, phone, user_status) VALUES 
-(1, 'johndoe', 'John', 'Doe', 'john.doe@example.com', 'password123', '555-123-4567', 1),
-(2, 'janedoe', 'Jane', 'Doe', 'jane.doe@example.com', 'password456', '555-234-5678', 1),
-(3, 'bobsmith', 'Bob', 'Smith', 'bob.smith@example.com', 'password789', '555-345-6789', 1),
-(4, 'alicejones', 'Alice', 'Jones', 'alice.jones@example.com', 'passwordabc', '555-456-7890', 1),
-(5, 'mikebrown', 'Mike', 'Brown', 'mike.brown@example.com', 'passworddef', '555-567-8901', 1);
+(1, 'user1', 'John', 'Doe', 'john.doe@example.com', 'password123', '555-123-4567', 1),
+(2, 'user2', 'Jane', 'Doe', 'jane.doe@example.com', 'password123', '555-234-5678', 1),
+(3, 'user3', 'Bob', 'Smith', 'bob.smith@example.com', 'password123', '555-345-6789', 1),
+(4, 'user4', 'Alice', 'Jones', 'alice.jones@example.com', 'password123', '555-456-7890', 1),
+(5, 'user5', 'Mike', 'Brown', 'mike.brown@example.com', 'password123', '555-567-8901', 1);

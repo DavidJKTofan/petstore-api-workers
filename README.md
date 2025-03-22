@@ -44,6 +44,8 @@ cd petstore-api-workers
 npx wrangler d1 create petstore
 ```
 
+> Make sure you don't already have a D1 database called `petstore`.
+
 5. Update your `wrangler.jsonc` [configuration file](https://developers.cloudflare.com/workers/wrangler/configuration/) with the database ID from the previous step:
 
 ```json
