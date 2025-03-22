@@ -1,4 +1,4 @@
-# Copy of Swagger Petstore API on Cloudflare Workers + D1
+# Mini-Copy of Swagger Petstore API on Cloudflare Workers + D1
 
 This project attempts to implement the [Swagger Petstore API](https://github.com/swagger-api/swagger-petstore) using [Cloudflare Workers](https://workers.cloudflare.com/) and [Cloudflare D1](https://developers.cloudflare.com/d1/) database. It provides a fully functioning REST API for a pet store, including endpoints for managing pets, orders, and users.
 
@@ -361,7 +361,7 @@ pip install "httpx[http2]" # Uses HTTP version HTTP/2
 - `--parallel`: Number of parallel threads for concurrent operations (default: 0, which means sequential operation)
 
 ```bash
-python traffic-simulator.py --url "https://petstore.automatic-demo.com/" --api-key "special-key" --duration 30 --rate 60 --min-pets 10 --min-users 10 --parallel 3
+python traffic-simulator.py --url "https://petstore.automatic-demo.com/api/v3/" --api-key "special-key" --duration 30 --rate 60 --min-pets 10 --min-users 10 --parallel 3  
 ```
 
 - Run the simulator for 30 minutes

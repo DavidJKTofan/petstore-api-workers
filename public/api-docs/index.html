@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Petstore API Documentation" />
+    <title>Petstore API Documentation</title>
+    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        .swagger-ui .topbar {
+            background-color: #f6821f;
+        }
+        .swagger-ui .info .title small.version-stamp {
+            background-color: #003682;
+        }
+    </style>
+</head>
+<body>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-bundle.js" crossorigin></script>
+    <script>
+        window.onload = () => {
+            const ui = SwaggerUIBundle({
+                url: '/api-docs/openapi.yaml',
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIBundle.SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "BaseLayout",
+                requestInterceptor: (req) => {
+                    // Add default API key for testing if none is provided
+                    if (!req.headers['api-key-petstore']) {
+                        req.headers['api-key-petstore'] = 'special-key';
+                    }
+                    return req;
+                }
+            });
+            window.ui = ui;
+        };
+    </script>
+</body>
+</html> 

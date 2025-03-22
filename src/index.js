@@ -23,8 +23,26 @@ function errorResponse(message, status = 400) {
 async function authenticate(request) {
 	const apiKey = request.headers.get('api-key-petstore');
 	if (request.url.includes('/pet/') || request.url.includes('/store/inventory')) {
-		if (!apiKey) {
-			return new Response('Authentication required', { status: 401 });
+		if (!apiKey || apiKey.trim() === '') {
+			return new Response('API key is required', {
+				status: 401,
+				headers: {
+					'Content-Type': 'application/json',
+					'Access-Control-Allow-Origin': '*'
+				}
+			});
+		}
+		// You might want to add additional validation here
+		// For example, checking against a list of valid API keys
+		const validApiKeys = ['your_api_key', 'special-key', 'test-key']; // Add your valid keys here
+		if (!validApiKeys.includes(apiKey)) {
+			return new Response('Invalid API key', {
+				status: 403,
+				headers: {
+					'Content-Type': 'application/json',
+					'Access-Control-Allow-Origin': '*'
+				}
+			});
 		}
 	}
 	return null; // Authentication passed
@@ -723,21 +741,35 @@ export default {
 	async fetch(request, env, ctx) {
 		const url = new URL(request.url);
 		
+		// Add CORS headers helper
+		const corsHeaders = {
+			'Access-Control-Allow-Origin': '*',
+			'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+			'Access-Control-Allow-Headers': 'Content-Type, Authorization, api-key-petstore',
+		};
+
+		// Handle CORS preflight for all requests
+		if (request.method === 'OPTIONS') {
+			return new Response(null, {
+				headers: corsHeaders,
+			});
+		}
+
+		// Serve OpenAPI specification file
+		if (url.pathname === '/api-docs/openapi.yaml' || url.pathname === '/openapi.yaml') {
+			const response = await env.ASSETS.fetch(request);
+			// Add CORS headers to the response
+			const newResponse = new Response(response.body, response);
+			Object.entries(corsHeaders).forEach(([key, value]) => {
+				newResponse.headers.set(key, value);
+			});
+			return newResponse;
+		}
+		
 		// If the path starts with /api/v3, handle API requests
 		if (url.pathname.startsWith('/api/v3')) {
 			// Access the D1 database
 			const db = env.PETSTORE_DB;
-
-			// Handle CORS preflight
-			if (request.method === 'OPTIONS') {
-				return new Response(null, {
-					headers: {
-						'Access-Control-Allow-Origin': '*',
-						'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-						'Access-Control-Allow-Headers': 'Content-Type, Authorization, api-key-petstore',
-					},
-				});
-			}
 
 			// Check authentication for protected routes
 			const authError = await authenticate(request);
@@ -843,7 +875,12 @@ export default {
 			}
 		}
 		
-		// For all other requests, serve static assets
-		return env.ASSETS.fetch(request);
+		// For all other requests, serve static assets with CORS headers
+		const response = await env.ASSETS.fetch(request);
+		const newResponse = new Response(response.body, response);
+		Object.entries(corsHeaders).forEach(([key, value]) => {
+			newResponse.headers.set(key, value);
+		});
+		return newResponse;
 	}
 };
