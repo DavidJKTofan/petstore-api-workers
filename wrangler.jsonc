@@ -1,0 +1,24 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "petstore-api",
+	"main": "src/index.js",
+	"compatibility_date": "2025-03-20",
+	"observability": {
+		"enabled": true
+	},
+	"routes": [
+		{
+			"pattern": "petstore.automatic-demo.com",
+			"custom_domain": true
+		}
+	],
+	"workers_dev": false,
+	"preview_urls": false,
+	"d1_databases": [
+		{
+			"binding": "PETSTORE_DB",
+			"database_name": "petstore",
+			"database_id": "6c662a4b-91d5-482e-8032-fd19c28cae9d"
+		}
+	]
+}
