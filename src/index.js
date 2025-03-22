@@ -34,7 +34,7 @@ async function authenticate(request) {
 		}
 		// You might want to add additional validation here
 		// For example, checking against a list of valid API keys
-		const validApiKeys = ['your_api_key', 'special-key', 'test-key']; // Add your valid keys here
+		const validApiKeys = ['your_api_key', 'special-key', 'test-key']; // Add your valid keys here, or better use Secrets.
 		if (!validApiKeys.includes(apiKey)) {
 			return new Response('Invalid API key', {
 				status: 403,

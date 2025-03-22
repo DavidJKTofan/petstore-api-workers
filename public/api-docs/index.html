@@ -36,14 +36,7 @@
                 plugins: [
                     SwaggerUIBundle.plugins.DownloadUrl
                 ],
-                layout: "BaseLayout",
-                requestInterceptor: (req) => {
-                    // Add default API key for testing if none is provided
-                    if (!req.headers['api-key-petstore']) {
-                        req.headers['api-key-petstore'] = 'special-key';
-                    }
-                    return req;
-                }
+                layout: "BaseLayout"
             });
             window.ui = ui;
         };

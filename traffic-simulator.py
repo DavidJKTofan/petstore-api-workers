@@ -769,7 +769,8 @@ class PetstoreTrafficSimulator:
             logger.info("Simulation interrupted by user")
         
         logger.info(f"Simulation completed with {operation_count} operations")
-        
+        self.generate_summary_report()
+    
     def run_parallel_simulation(self, duration_minutes: int = 10, 
                               operations_per_minute: int = 30, 
                               concurrency: int = 3):
@@ -813,12 +814,77 @@ class PetstoreTrafficSimulator:
         # Get total operation count
         total_operations = sum(future.result() for future in futures)
         logger.info(f"Parallel simulation completed with {total_operations} total operations")
+        self.generate_summary_report()
 
     def __del__(self):
         """Clean up resources when the object is destroyed"""
         # Close the requests session
         if hasattr(self, 'session'):
             self.session.close()
+
+    def generate_summary_report(self):
+        """Generate a summary report of operations and errors"""
+        # Get all logs from the file
+        error_count = 0
+        operation_counts = {
+            'pet': {'create': 0, 'update': 0, 'delete': 0, 'get': 0},
+            'user': {'create': 0, 'update': 0, 'delete': 0, 'get': 0},
+            'order': {'create': 0, 'update': 0, 'delete': 0, 'get': 0}
+        }
+        
+        try:
+            with open("petstore_simulator.log", "r") as f:
+                for line in f:
+                    # Count errors
+                    if "ERROR" in line:
+                        error_count += 1
+                    
+                    # Count operations
+                    if "Created new pet" in line:
+                        operation_counts['pet']['create'] += 1
+                    elif "Updated pet" in line:
+                        operation_counts['pet']['update'] += 1
+                    elif "Deleted pet" in line:
+                        operation_counts['pet']['delete'] += 1
+                    elif "Retrieved pet" in line:
+                        operation_counts['pet']['get'] += 1
+                    elif "Created new user" in line:
+                        operation_counts['user']['create'] += 1
+                    elif "Updated user" in line:
+                        operation_counts['user']['update'] += 1
+                    elif "Deleted user" in line:
+                        operation_counts['user']['delete'] += 1
+                    elif "Retrieved user" in line:
+                        operation_counts['user']['get'] += 1
+                    elif "Created new order" in line:
+                        operation_counts['order']['create'] += 1
+                    elif "Updated order" in line:
+                        operation_counts['order']['update'] += 1
+                    elif "Deleted order" in line:
+                        operation_counts['order']['delete'] += 1
+                    elif "Retrieved order" in line:
+                        operation_counts['order']['get'] += 1
+        
+            # Print summary report
+            logger.info("\n" + "="*50)
+            logger.info("SIMULATION SUMMARY REPORT")
+            logger.info("="*50)
+            logger.info(f"Total Errors: {error_count}")
+            
+            logger.info("\nOperation Counts:")
+            for entity, ops in operation_counts.items():
+                logger.info(f"\n{entity.upper()} Operations:")
+                for op, count in ops.items():
+                    logger.info(f"  {op.capitalize()}: {count}")
+            
+            logger.info("\nFinal State:")
+            logger.info(f"  Pets: {len(self.pet_ids)}")
+            logger.info(f"  Users: {len(self.usernames)}")
+            logger.info(f"  Orders: {len(self.order_ids)}")
+            logger.info("="*50)
+        
+        except FileNotFoundError:
+            logger.error("Log file not found - cannot generate summary report")
 
 
 if __name__ == "__main__":
@@ -863,3 +929,5 @@ if __name__ == "__main__":
             duration_minutes=args.duration,
             operations_per_minute=args.rate
         )
+    # Generate and print summary report
+    # simulator.generate_summary_report()
