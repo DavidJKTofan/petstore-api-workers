@@ -1,4 +1,4 @@
-import requests
+import httpx
 import random
 import time
 import json
@@ -22,7 +22,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class PetstoreTrafficSimulator:
-    """Simulates real-life traffic to the Petstore API"""
+    """Simulates real-life traffic to the Petstore API using HTTP/2"""
     
     def __init__(self, base_url: str, api_key: str, min_pets: int = 10, min_users: int = 5, min_orders: int = 3):
         """
@@ -50,9 +50,9 @@ class PetstoreTrafficSimulator:
             "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
         ]
         
-        # Create a session for connection pooling
-        self.session = requests.Session()
-        self.session.headers.update({"api_key": api_key, "Content-Type": "application/json"})
+        # Create an HTTP/2 enabled client
+        self.session = httpx.Client(http2=True)
+        self.session.headers.update({"api-key-petstore": api_key, "Content-Type": "application/json"})
         
         # Track entity IDs we've created
         self.pet_ids = []
@@ -104,7 +104,7 @@ class PetstoreTrafficSimulator:
         """Get a random user agent from the list"""
         return random.choice(self.user_agents)
     
-    def _make_request(self, method: str, endpoint: str, **kwargs) -> Optional[requests.Response]:
+    def _make_request(self, method: str, endpoint: str, **kwargs) -> Optional[httpx.Response]:
         """
         Make an HTTP request with error handling and random user agent
         
@@ -123,7 +123,7 @@ class PetstoreTrafficSimulator:
         headers.update({
             "User-Agent": self._get_random_user_agent(),
             "Accept": "application/json",
-            "api_key": self.api_key,  # Ensure API key is always included
+            "api-key-petstore": self.api_key,  # Ensure API key is always included
             "Content-Type": "application/json"
         })
         kwargs['headers'] = headers
@@ -153,19 +153,19 @@ class PetstoreTrafficSimulator:
             response.raise_for_status()
             return response
         
-        except requests.exceptions.Timeout:
+        except httpx.TimeoutException:
             logger.error(f"Request timeout: {method} {url}")
             return None
-        except requests.exceptions.ConnectionError:
+        except httpx.ConnectError:
             logger.error(f"Connection error: {method} {url}")
             return None
-        except requests.exceptions.HTTPError as e:
-            status_code = e.response.status_code if e.response else "unknown"
-            response_text = e.response.text if e.response and e.response.text else "No response body"
+        except httpx.HTTPStatusError as e:
+            status_code = e.response.status_code if hasattr(e, 'response') else "unknown"
+            response_text = e.response.text if hasattr(e, 'response') and e.response.text else "No response body"
             logger.error(f"HTTP error {status_code}: {method} {url} - Response: {response_text}")
             
             # For 404 errors, we may need to clean up our tracking lists
-            if e.response and e.response.status_code == 404:
+            if hasattr(e, 'response') and e.response.status_code == 404:
                 if 'pet' in endpoint and any(str(pet_id) in endpoint for pet_id in self.pet_ids):
                     # Extract pet_id from endpoint
                     for pet_id in self.pet_ids[:]:  # Create a copy of the list to iterate

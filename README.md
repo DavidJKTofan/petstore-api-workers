@@ -100,7 +100,7 @@ https://petstore.automatic-demo.com/api/v3
 Many endpoints require an API key for authentication:
 
 ```
-api_key: your_api_key
+api-key-petstore: your_api_key
 ```
 
 Pass this key in the header of your requests.
@@ -112,7 +112,7 @@ Pass this key in the header of your requests.
 ```bash
 curl -X POST "https://petstore.automatic-demo.com/api/v3/pet" \
   -H "Content-Type: application/json" \
-  -H "api_key: your_api_key" \
+  -H "api-key-petstore: your_api-key-petstore" \
   -d '{
     "name": "Doggo",
     "photoUrls": ["https://example.com/doggo.jpg"],
@@ -134,7 +134,7 @@ curl -X POST "https://petstore.automatic-demo.com/api/v3/pet" \
 
 ```bash
 curl -X GET "https://petstore.automatic-demo.com/api/v3/pet/1" \
-  -H "api_key: your_api_key"
+  -H "api-key-petstore: your_api-key-petstore"
 ```
 
 #### Update an existing pet
@@ -142,7 +142,7 @@ curl -X GET "https://petstore.automatic-demo.com/api/v3/pet/1" \
 ```bash
 curl -X PUT "https://petstore.automatic-demo.com/api/v3/pet" \
   -H "Content-Type: application/json" \
-  -H "api_key: your_api_key" \
+  -H "api-key-petstore: your_api-key-petstore" \
   -d '{
     "id": 1,
     "name": "Doggo Updated",
@@ -165,28 +165,28 @@ curl -X PUT "https://petstore.automatic-demo.com/api/v3/pet" \
 
 ```bash
 curl -X GET "https://petstore.automatic-demo.com/api/v3/pet/findByStatus?status=available" \
-  -H "api_key: your_api_key"
+  -H "api-key-petstore: your_api-key-petstore"
 ```
 
 #### Find pets by tags
 
 ```bash
 curl -X GET "https://petstore.automatic-demo.com/api/v3/pet/findByTags?tags=friendly&tags=trained" \
-  -H "api_key: your_api_key"
+  -H "api-key-petstore: your_api-key-petstore"
 ```
 
 #### Delete a pet
 
 ```bash
 curl -X DELETE "https://petstore.automatic-demo.com/api/v3/pet/1" \
-  -H "api_key: your_api_key"
+  -H "api-key-petstore: your_api-key-petstore"
 ```
 
 #### Upload an image for a pet
 
 ```bash
 curl -X POST "https://petstore.automatic-demo.com/api/v3/pet/1/uploadImage" \
-  -H "api_key: your_api_key" \
+  -H "api-key-petstore: your_api-key-petstore" \
   -F "file=@pet-image.jpg" \
   -F "additionalMetadata=Profile photo for pet"
 ```
@@ -197,7 +197,7 @@ curl -X POST "https://petstore.automatic-demo.com/api/v3/pet/1/uploadImage" \
 
 ```bash
 curl -X GET "https://petstore.automatic-demo.com/api/v3/store/inventory" \
-  -H "api_key: your_api_key"
+  -H "api-key-petstore: your_api-key-petstore"
 ```
 
 #### Place an order
@@ -338,6 +338,12 @@ Use a virtual environment:
 ```bash
 python -m venv PETSTORE_API
 source PETSTORE_API/bin/activate
+```
+
+Install dependencies:
+
+```bash
+pip install "httpx[http2]" # Uses HTTP version HTTP/2 
 ```
 
 #### Required Arguments

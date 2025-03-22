@@ -9,7 +9,7 @@ function jsonResponse(data, status = 200) {
 			'Content-Type': 'application/json',
 			'Access-Control-Allow-Origin': '*',
 			'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-			'Access-Control-Allow-Headers': 'Content-Type, Authorization, api_key',
+			'Access-Control-Allow-Headers': 'Content-Type, Authorization, api-key-petstore',
 		},
 	});
 }
@@ -21,7 +21,7 @@ function errorResponse(message, status = 400) {
 
 // Middleware for authentication (simple implementation)
 async function authenticate(request) {
-	const apiKey = request.headers.get('api_key');
+	const apiKey = request.headers.get('api-key-petstore');
 	if (request.url.includes('/pet/') || request.url.includes('/store/inventory')) {
 		if (!apiKey) {
 			return new Response('Authentication required', { status: 401 });
@@ -733,7 +733,7 @@ export default {
 				headers: {
 					'Access-Control-Allow-Origin': '*',
 					'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-					'Access-Control-Allow-Headers': 'Content-Type, Authorization, api_key',
+					'Access-Control-Allow-Headers': 'Content-Type, Authorization, api-key-petstore',
 				},
 			});
 		}
