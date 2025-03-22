@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Petstore API</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="favicon.png">
+</head>
+
+<body>
+    <header>
+        <nav>
+            <div class="logo">
+                <img src="favicon.svg" alt="Petstore API Logo">
+            </div>
+            <ul>
+                <li><a href="#about">About</a></li>
+                <li><a href="#docs">API Docs</a></li>
+                <li><a href="#try">Try It</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="hero">
+            <h1>Petstore API</h1>
+            <p>A fully functional REST API for managing a pet store, built with Cloudflare Workers and D1</p>
+            <div class="cta-buttons">
+                <a href="https://github.com/DavidJKTofan/petstore-api-workers" target="_blank"
+                    class="button primary">View on GitHub</a>
+                <a href="api-docs" class="button secondary">API Documentation</a>
+            </div>
+        </section>
+
+        <section id="about">
+            <h2>About the Project</h2>
+            <div class="features">
+                <div class="feature-card">
+                    <h3>RESTful API</h3>
+                    <p>Following OpenAPI/Swagger Petstore specification</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Serverless</h3>
+                    <p>Built on Cloudflare Workers</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Database</h3>
+                    <p>Powered by Cloudflare D1</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="try">
+            <h2>Try the API</h2>
+            <div class="code-example">
+                <pre><code>curl -X GET "https://petstore.automatic-demo.com/api/v3/pet/1" \
+     -H "api-key-petstore: your_api_key"</code></pre>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p><svg width="5vw" height="5vh" color="rgb(246 130 31 / var(--tw-text-opacity, 1))" data-icon="workers">
+                <symbol id="ai:local:workers" viewBox="0 0 48 49">
+                    <path fill="currentColor"
+                        d="m18.63 37.418-9.645-12.9 9.592-12.533-1.852-2.527L5.917 23.595l-.015 1.808 10.86 14.542z">
+                    </path>
+                    <path fill="currentColor" d="M21.997 6.503h-3.712l13.387 18.3-13.072 17.7h3.735L35.4 24.81z"></path>
+                    <path fill="currentColor"
+                        d="M29.175 6.503h-3.758l13.598 18.082-13.598 17.918h3.765l12.908-17.01v-1.808z"></path>
+                </symbol>
+                <use href="#ai:local:workers"></use>
+            </svg> Built with Cloudflare Workers.</p>
+    </footer>
+</body>
+
+</html>

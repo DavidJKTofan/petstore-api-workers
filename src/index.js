@@ -721,124 +721,129 @@ const userHandlers = {
 // Main request handler
 export default {
 	async fetch(request, env, ctx) {
-		const url = request.url;
-		const method = request.method;
+		const url = new URL(request.url);
+		
+		// If the path starts with /api/v3, handle API requests
+		if (url.pathname.startsWith('/api/v3')) {
+			// Access the D1 database
+			const db = env.PETSTORE_DB;
 
-		// Access the D1 database
-		const db = env.PETSTORE_DB;
+			// Handle CORS preflight
+			if (request.method === 'OPTIONS') {
+				return new Response(null, {
+					headers: {
+						'Access-Control-Allow-Origin': '*',
+						'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+						'Access-Control-Allow-Headers': 'Content-Type, Authorization, api-key-petstore',
+					},
+				});
+			}
 
-		// Handle CORS preflight
-		if (method === 'OPTIONS') {
-			return new Response(null, {
-				headers: {
-					'Access-Control-Allow-Origin': '*',
-					'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-					'Access-Control-Allow-Headers': 'Content-Type, Authorization, api-key-petstore',
-				},
-			});
+			// Check authentication for protected routes
+			const authError = await authenticate(request);
+			if (authError) return authError;
+
+			const parsedUrl = new URL(url);
+			const path = parsedUrl.pathname;
+			const apiPath = path.replace(/^\/api\/v3/, '');
+
+			try {
+				// Pet Routes
+				if (apiPath === '/pet' && request.method === 'POST') {
+					return await petHandlers.createPet(request, db);
+				}
+
+				if (apiPath === '/pet' && request.method === 'PUT') {
+					return await petHandlers.updatePet(request, db);
+				}
+
+				if (apiPath === '/pet/findByStatus' && request.method === 'GET') {
+					return await petHandlers.findByStatus(url, db);
+				}
+
+				if (apiPath === '/pet/findByTags' && request.method === 'GET') {
+					return await petHandlers.findByTags(url, db);
+				}
+
+				if (apiPath.match(/^\/pet\/\d+$/) && request.method === 'GET') {
+					const petId = apiPath.split('/')[2];
+					return await petHandlers.getPetById(petId, db);
+				}
+
+				if (apiPath.match(/^\/pet\/\d+$/) && request.method === 'POST') {
+					const petId = apiPath.split('/')[2];
+					return await petHandlers.updatePetWithForm(petId, url, request, db);
+				}
+
+				if (apiPath.match(/^\/pet\/\d+$/) && request.method === 'DELETE') {
+					const petId = apiPath.split('/')[2];
+					return await petHandlers.deletePet(petId, db);
+				}
+
+				if (apiPath.match(/^\/pet\/\d+\/uploadImage$/) && request.method === 'POST') {
+					const petId = apiPath.split('/')[2];
+					return await petHandlers.uploadImage(petId, request, db);
+				}
+
+				// Store Routes
+				if (apiPath === '/store/inventory' && request.method === 'GET') {
+					return await storeHandlers.getInventory(db);
+				}
+
+				if (apiPath === '/store/order' && request.method === 'POST') {
+					return await storeHandlers.placeOrder(request, db);
+				}
+
+				if (apiPath.match(/^\/store\/order\/\d+$/) && request.method === 'GET') {
+					const orderId = apiPath.split('/')[3];
+					return await storeHandlers.getOrderById(orderId, db);
+				}
+
+				if (apiPath.match(/^\/store\/order\/\d+$/) && request.method === 'DELETE') {
+					const orderId = apiPath.split('/')[3];
+					return await storeHandlers.deleteOrder(orderId, db);
+				}
+
+				// User Routes
+				if (apiPath === '/user' && request.method === 'POST') {
+					return await userHandlers.createUser(request, db);
+				}
+
+				if (apiPath === '/user/createWithList' && request.method === 'POST') {
+					return await userHandlers.createUsersWithList(request, db);
+				}
+
+				if (apiPath === '/user/login' && request.method === 'GET') {
+					return await userHandlers.loginUser(url, db);
+				}
+
+				if (apiPath === '/user/logout' && request.method === 'GET') {
+					return await userHandlers.logoutUser();
+				}
+
+				if (apiPath.match(/^\/user\/[^\/]+$/) && request.method === 'GET') {
+					const username = apiPath.split('/')[2];
+					return await userHandlers.getUserByName(username, db);
+				}
+
+				if (apiPath.match(/^\/user\/[^\/]+$/) && request.method === 'PUT') {
+					const username = apiPath.split('/')[2];
+					return await userHandlers.updateUser(username, request, db);
+				}
+
+				if (apiPath.match(/^\/user\/[^\/]+$/) && request.method === 'DELETE') {
+					const username = apiPath.split('/')[2];
+					return await userHandlers.deleteUser(username, db);
+				}
+
+				// If we get here, the route wasn't found
+				return errorResponse('Not Found', 404);
+			} catch (error) {
+				return errorResponse('Internal Server Error: ' + error.message, 500);
+			}
 		}
-
-		// Check authentication for protected routes
-		const authError = await authenticate(request);
-		if (authError) return authError;
-
-		const parsedUrl = new URL(url);
-		const path = parsedUrl.pathname;
-		const apiPath = path.replace(/^\/api\/v3/, '');
-
-		try {
-			// Pet Routes
-			if (apiPath === '/pet' && method === 'POST') {
-				return await petHandlers.createPet(request, db);
-			}
-
-			if (apiPath === '/pet' && method === 'PUT') {
-				return await petHandlers.updatePet(request, db);
-			}
-
-			if (apiPath === '/pet/findByStatus' && method === 'GET') {
-				return await petHandlers.findByStatus(url, db);
-			}
-
-			if (apiPath === '/pet/findByTags' && method === 'GET') {
-				return await petHandlers.findByTags(url, db);
-			}
-
-			if (apiPath.match(/^\/pet\/\d+$/) && method === 'GET') {
-				const petId = apiPath.split('/')[2];
-				return await petHandlers.getPetById(petId, db);
-			}
-
-			if (apiPath.match(/^\/pet\/\d+$/) && method === 'POST') {
-				const petId = apiPath.split('/')[2];
-				return await petHandlers.updatePetWithForm(petId, url, request, db);
-			}
-
-			if (apiPath.match(/^\/pet\/\d+$/) && method === 'DELETE') {
-				const petId = apiPath.split('/')[2];
-				return await petHandlers.deletePet(petId, db);
-			}
-
-			if (apiPath.match(/^\/pet\/\d+\/uploadImage$/) && method === 'POST') {
-				const petId = apiPath.split('/')[2];
-				return await petHandlers.uploadImage(petId, request, db);
-			}
-
-			// Store Routes
-			if (apiPath === '/store/inventory' && method === 'GET') {
-				return await storeHandlers.getInventory(db);
-			}
-
-			if (apiPath === '/store/order' && method === 'POST') {
-				return await storeHandlers.placeOrder(request, db);
-			}
-
-			if (apiPath.match(/^\/store\/order\/\d+$/) && method === 'GET') {
-				const orderId = apiPath.split('/')[3];
-				return await storeHandlers.getOrderById(orderId, db);
-			}
-
-			if (apiPath.match(/^\/store\/order\/\d+$/) && method === 'DELETE') {
-				const orderId = apiPath.split('/')[3];
-				return await storeHandlers.deleteOrder(orderId, db);
-			}
-
-			// User Routes
-			if (apiPath === '/user' && method === 'POST') {
-				return await userHandlers.createUser(request, db);
-			}
-
-			if (apiPath === '/user/createWithList' && method === 'POST') {
-				return await userHandlers.createUsersWithList(request, db);
-			}
-
-			if (apiPath === '/user/login' && method === 'GET') {
-				return await userHandlers.loginUser(url, db);
-			}
-
-			if (apiPath === '/user/logout' && method === 'GET') {
-				return await userHandlers.logoutUser();
-			}
-
-			if (apiPath.match(/^\/user\/[^\/]+$/) && method === 'GET') {
-				const username = apiPath.split('/')[2];
-				return await userHandlers.getUserByName(username, db);
-			}
-
-			if (apiPath.match(/^\/user\/[^\/]+$/) && method === 'PUT') {
-				const username = apiPath.split('/')[2];
-				return await userHandlers.updateUser(username, request, db);
-			}
-
-			if (apiPath.match(/^\/user\/[^\/]+$/) && method === 'DELETE') {
-				const username = apiPath.split('/')[2];
-				return await userHandlers.deleteUser(username, db);
-			}
-
-			// If we get here, the route wasn't found
-			return errorResponse('Not Found', 404);
-		} catch (error) {
-			return errorResponse('Internal Server Error: ' + error.message, 500);
-		}
-	},
+		
+		// For all other requests, serve static assets
+		return env.ASSETS.fetch(request);
+	}
 };

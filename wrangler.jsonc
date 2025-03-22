@@ -20,5 +20,9 @@
 			"database_name": "petstore",
 			"database_id": "6c662a4b-91d5-482e-8032-fd19c28cae9d"
 		}
-	]
+	],
+	"assets": {
+		"directory": "./public",
+		"binding": "ASSETS"
+	}
 }
