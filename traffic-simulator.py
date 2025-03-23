@@ -245,8 +245,10 @@ class PetstoreTrafficSimulator:
         
         if self.jwt_tokens:
             logger.info(f"Successfully loaded {len(self.jwt_tokens)} JWT tokens for authentication")
+        elif self.api_key:
+            logger.info("Using API key authentication")
         else:
-            logger.warning("No JWT tokens loaded, falling back to API key authentication")
+            logger.warning("No authentication method available!")
         
         # List of common user agents to rotate through
         self.user_agents = [
@@ -323,9 +325,13 @@ class PetstoreTrafficSimulator:
             # Use a random JWT token
             token = random.choice(self.jwt_tokens)
             return {"api-key-petstore": token}
-        else:
-            # Fallback to API key
+        elif self.api_key:
+            # Use API key if available
             return {"api-key-petstore": self.api_key}
+        else:
+            # This should never happen due to argument validation, but just in case
+            logger.error("No authentication method available (neither JWT tokens nor API key)")
+            return {"api-key-petstore": ""}  # Empty header as fallback
     
     def _make_request(self, method: str, endpoint: str, **kwargs) -> Optional[httpx.Response]:
         """
@@ -1169,7 +1175,7 @@ class PetstoreTrafficSimulator:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Petstore API Traffic Simulator")
     parser.add_argument("--url", required=True, help="Base URL of the Petstore API")
-    parser.add_argument("--api-key", required=True, help="API key for authentication")
+    parser.add_argument("--api-key", help="API key for authentication (required unless --use-jwt is specified)")
     parser.add_argument("--duration", type=int, default=10, help="Duration in minutes (default: 10)")
     parser.add_argument("--rate", type=int, default=30, help="Operations per minute (default: 30)")
     parser.add_argument("--min-pets", type=int, default=10, help="Minimum number of pets (default: 10)")
@@ -1184,6 +1190,12 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
+    # Add validation to ensure either API key or JWT is specified
+    if not args.api_key and not args.use_jwt:
+        logger.error("Error: Either --api-key or --use-jwt must be specified")
+        parser.print_help()
+        sys.exit(1)
+
     # Add after parsing args
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
@@ -1198,7 +1210,7 @@ if __name__ == "__main__":
     # Create and run simulator
     simulator = PetstoreTrafficSimulator(
         base_url=args.url,
-        api_key=args.api_key,
+        api_key=args.api_key or "",  # Use empty string if api_key is None
         min_pets=args.min_pets,
         min_users=args.min_users,
         min_orders=args.min_orders,
