@@ -1,0 +1,23 @@
+{
+    "title": "Pet Store API JWT configuration",
+    "description": "This configuration validates JWT tokens for the Pet Store API",
+    "token_sources": [
+        "http.request.headers[\"authorization\"][0]",
+        "http.request.headers[\"Authorization\"][0]"
+    ],
+    "token_type": "jwt",
+    "credentials": {
+        "keys": [
+            // Only upload this part
+            {
+                "kty": "EC",
+                "use": "sig",
+                "crv": "P-256",
+                "kid": "petstore-ec256",
+                "x": "VeonNaXw1oEASI1RnvKKiTmdHH_JoTsWJhJSAXxA7JE",
+                "y": "LNwzo3kDU_O8P3741qzhrytQLyakaLggCcZdZ7FArmU",
+                "alg": "ES256"
+            }
+        ]
+    }
+}

@@ -177,3 +177,11 @@ dist
 /.vscode
 /PETSTORE_API
 petstore_simulator.log
+petstore-api-keys/private-key.pem
+petstore-api-keys/public-private-keypair-set.json
+petstore-api-keys/public-private-keypair.json
+petstore-api-keys/mkjwk.png
+petstore-api-keys/self-signed-certificate
+petstore-api-keys/Implementing JWT Validation for _4cdbfc6543eb47b48bf14a5207475507-210325-1517-506.pdf
+petstore-api-keys/JWT_TOKENS
+petstore-api-keys/temp_tokens/user*

@@ -10,6 +10,8 @@ This project attempts to implement the [Swagger Petstore API](https://github.com
 - Authentication implemented with Cloudflare API Shield [JWT Validation](https://developers.cloudflare.com/api-shield/security/jwt-validation/)
 - Complete CRUD operations for pets, users, and orders
 
+> You can upload the `openapi.yaml` file to Cloudflare API Shield [Schema Validation](https://developers.cloudflare.com/api-shield/security/schema-validation/).
+
 ## Deployment
 
 ### Prerequisites
@@ -344,6 +346,7 @@ Install dependencies:
 
 ```bash
 pip install "httpx[http2]" # Uses HTTP version HTTP/2 
+pip install authlib cryptography # for JWT Tokens
 ```
 
 #### Required Arguments
@@ -361,7 +364,7 @@ pip install "httpx[http2]" # Uses HTTP version HTTP/2
 - `--parallel`: Number of parallel threads for concurrent operations (default: 0, which means sequential operation)
 
 ```bash
-python traffic-simulator.py --url "https://petstore.automatic-demo.com/api/v3/" --api-key "special-key" --duration 30 --rate 60 --min-pets 10 --min-users 10 --parallel 3  
+python traffic-simulator.py --url "https://petstore.automatic-demo.com/api/v3/" --api-key "special-key" --duration 30 --rate 60 --min-pets 10 --min-users 10 --parallel 3 --use-jwt
 ```
 
 - Run the simulator for 30 minutes

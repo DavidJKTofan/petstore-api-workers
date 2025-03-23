@@ -9,6 +9,8 @@ from typing import Dict, List, Any, Optional, Tuple
 import string
 from concurrent.futures import ThreadPoolExecutor
 import sys
+import os
+import subprocess
 
 # Configure logging
 logging.basicConfig(
@@ -21,25 +23,230 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+def generate_jwt_tokens(duration_minutes: int, token_dir: str = "petstore-api-keys/temp_tokens") -> List[str]:
+    """
+    Generate JWT tokens for test users by calling the create_customer_token.py script
+    
+    Args:
+        duration_minutes: Simulation duration in minutes (converted to seconds for token expiration)
+        token_dir: Directory to store generated tokens
+    
+    Returns:
+        List of token file paths
+    """
+    # Ensure the token directory exists
+    os.makedirs(token_dir, exist_ok=True)
+    
+    # Check for private key and create it if it doesn't exist
+    private_key_path = "private-key.pem"
+    private_key_paths = [
+        "private-key.pem",
+        "petstore-api-keys/private-key.pem",
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "petstore-api-keys/private-key.pem")
+    ]
+    
+    private_key_exists = False
+    for path in private_key_paths:
+        if os.path.exists(path):
+            private_key_path = path
+            private_key_exists = True
+            logger.info(f"Found private key at: {path}")
+            break
+    
+    if not private_key_exists:
+        # Try to create the key using OpenSSL
+        try:
+            key_dir = os.path.dirname(private_key_paths[1])
+            if not os.path.exists(key_dir):
+                os.makedirs(key_dir, exist_ok=True)
+            
+            logger.info(f"Private key not found. Attempting to create one at {private_key_paths[1]}...")
+            
+            # Try to generate a key using openssl
+            result = subprocess.run(
+                ["openssl", "ecparam", "-genkey", "-name", "prime256v1", "-out", private_key_paths[1]],
+                capture_output=True,
+                text=True
+            )
+            
+            if result.returncode == 0 and os.path.exists(private_key_paths[1]):
+                logger.info(f"Successfully created private key at {private_key_paths[1]}")
+                private_key_path = private_key_paths[1]
+                private_key_exists = True
+            else:
+                logger.error(f"Failed to create private key: {result.stderr}")
+                logger.error("Cannot generate JWT tokens without a private key")
+                logger.error("Please create a private key as described in the README")
+                sys.exit(1)  # Exit if we can't create a key
+                
+        except Exception as e:
+            logger.error(f"Error creating private key: {str(e)}")
+            logger.error("Cannot generate JWT tokens without a private key")
+            logger.error("Please create a private key as described in the README")
+            sys.exit(1)  # Exit if we can't create a key
+    
+    # Set different expiration times for different users to demonstrate token expiration
+    # Some tokens will expire during the simulation while others remain valid
+    # Base expiration = simulation duration + small buffer
+    base_expiration_seconds = duration_minutes * 60 + 60  # Add 1 minute buffer
+    
+    # User configurations with varied expiration times
+    users = [
+        # This token will expire during a longer simulation (about 75% through)
+        {"username": "user1", "customer_type": "premium", "email": "user1@example.com", 
+         "expiration": int(duration_minutes * 60 * 0.75)},
+        
+        # This token will last the full simulation plus a small buffer
+        {"username": "user2", "customer_type": "standard", "email": "user2@example.com",
+         "expiration": base_expiration_seconds},
+        
+        # This token will last longer (for comparing behavior)
+        {"username": "user3", "customer_type": "free", "email": "user3@example.com",
+         "expiration": base_expiration_seconds * 2}
+    ]
+    
+    token_files = []
+    
+    # Find the script path with more robust method
+    script_paths = [
+        "petstore-api-keys/create_customer_token.py",
+        "create_customer_token.py",
+        os.path.join(os.path.dirname(__file__), "petstore-api-keys/create_customer_token.py"),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "petstore-api-keys/create_customer_token.py"),
+        "../petstore-api-keys/create_customer_token.py"
+    ]
+    
+    script_path = None
+    for path in script_paths:
+        if os.path.exists(path):
+            script_path = path
+            logger.info(f"Found token generation script at: {path}")
+            break
+    
+    if not script_path:
+        logger.error("Could not find create_customer_token.py script in any expected location")
+        logger.error(f"Searched paths: {script_paths}")
+        logger.error(f"Current working directory: {os.getcwd()}")
+        logger.error("Listing directory contents to help debug:")
+        for path in [".", "petstore-api-keys", "../petstore-api-keys"]:
+            try:
+                if os.path.exists(path):
+                    logger.error(f"Contents of {path}: {os.listdir(path)}")
+            except Exception as e:
+                logger.error(f"Could not list directory {path}: {e}")
+        # Exit since we can't find the token script
+        sys.exit(1)
+    
+    # Try different Python executables if needed
+    python_executables = ["python", "python3"]
+    
+    # Generate tokens for each user
+    for user in users:
+        success = False
+        
+        for python_exec in python_executables:
+            try:
+                logger.info(f"Generating JWT token for {user['username']} ({user['customer_type']}) using {python_exec}")
+                
+                # Add private key path to the command if we found it in a non-default location
+                cmd = [
+                    python_exec, script_path,
+                    "--username", user["username"],
+                    "--customer-type", user["customer_type"],
+                    "--email", user["email"],
+                    "--expiration", str(user["expiration"]),  # Use the user-specific expiration
+                    "--output-dir", token_dir
+                ]
+                
+                # Add key path if it's not the default
+                if private_key_path != "private-key.pem":
+                    cmd.extend(["--key-path", private_key_path])
+                
+                # Run the token generation script with verbose logging
+                logger.debug(f"Running command: {' '.join(cmd)}")
+                result = subprocess.run(cmd, capture_output=True, text=True)
+                
+                if result.returncode != 0:
+                    logger.error(f"Error generating token for {user['username']}: {result.stderr}")
+                    logger.error(f"Command output: {result.stdout}")
+                    continue
+                
+                # Parse the output to find the token file path
+                token_file = None
+                for line in result.stdout.splitlines():
+                    if "Token saved to:" in line:
+                        token_file = line.split("Token saved to:")[1].strip()
+                        token_files.append(token_file)
+                        logger.info(f"Generated token file: {token_file}")
+                        success = True
+                        break
+                
+                if not token_file and result.returncode == 0:
+                    # Token might have been generated but we couldn't parse the output
+                    # Try to find it in the token directory
+                    potential_files = [f for f in os.listdir(token_dir) 
+                                     if f.startswith(user["username"]) and f.endswith(".jwt")]
+                    if potential_files:
+                        # Use the most recent file
+                        newest_file = max(potential_files, 
+                                         key=lambda f: os.path.getmtime(os.path.join(token_dir, f)))
+                        token_file = os.path.join(token_dir, newest_file)
+                        token_files.append(token_file)
+                        logger.info(f"Found token file: {token_file}")
+                        success = True
+                
+                if success:
+                    break  # Exit the Python executable loop if successful
+                
+            except Exception as e:
+                logger.error(f"Failed to generate token for {user['username']} with {python_exec}: {str(e)}")
+        
+        if not success:
+            logger.error(f"All attempts to generate token for {user['username']} failed")
+    
+    if not token_files:
+        logger.error("No tokens were generated. Exiting since --use-jwt was specified.")
+        sys.exit(1)  # Exit instead of falling back to API key
+        
+    return token_files
+
 class PetstoreTrafficSimulator:
     """Simulates real-life traffic to the Petstore API using HTTP/2"""
     
-    def __init__(self, base_url: str, api_key: str, min_pets: int = 10, min_users: int = 5, min_orders: int = 3):
+    def __init__(self, base_url: str, api_key: str, min_pets: int = 10, min_users: int = 5, min_orders: int = 3, jwt_token_files: List[str] = None):
         """
         Initialize the simulator
         
         Args:
             base_url: Base URL of the Petstore API
-            api_key: API key for authentication
+            api_key: API key for authentication (fallback if JWT tokens not available)
             min_pets: Minimum number of pets to maintain
             min_users: Minimum number of users to maintain
             min_orders: Minimum number of orders to maintain
+            jwt_token_files: List of JWT token file paths to use for authentication
         """
         self.base_url = base_url.rstrip('/')
         self.api_key = api_key
         self.min_pets = min_pets
         self.min_users = min_users
         self.min_orders = min_orders
+        
+        # Load JWT tokens if provided
+        self.jwt_tokens = []
+        if jwt_token_files:
+            for token_file in jwt_token_files:
+                try:
+                    with open(token_file, 'r') as f:
+                        token = f.read().strip()
+                        self.jwt_tokens.append(token)
+                        logger.info(f"Loaded JWT token from {token_file}")
+                except Exception as e:
+                    logger.error(f"Failed to load token from {token_file}: {str(e)}")
+        
+        if self.jwt_tokens:
+            logger.info(f"Successfully loaded {len(self.jwt_tokens)} JWT tokens for authentication")
+        else:
+            logger.warning("No JWT tokens loaded, falling back to API key authentication")
         
         # List of common user agents to rotate through
         self.user_agents = [
@@ -52,7 +259,8 @@ class PetstoreTrafficSimulator:
         
         # Create an HTTP/2 enabled client
         self.session = httpx.Client(http2=True)
-        self.session.headers.update({"api-key-petstore": api_key, "Content-Type": "application/json"})
+        # Set default Content-Type header but we'll set auth header per-request
+        self.session.headers.update({"Content-Type": "application/json"})
         
         # Track entity IDs we've created
         self.pet_ids = []
@@ -104,6 +312,21 @@ class PetstoreTrafficSimulator:
         """Get a random user agent from the list"""
         return random.choice(self.user_agents)
     
+    def _get_auth_header(self) -> Dict[str, str]:
+        """
+        Get authentication header, using JWT token if available or fallback to API key
+        
+        Returns:
+            Dictionary with authentication header
+        """
+        if self.jwt_tokens:
+            # Use a random JWT token
+            token = random.choice(self.jwt_tokens)
+            return {"api-key-petstore": token}
+        else:
+            # Fallback to API key
+            return {"api-key-petstore": self.api_key}
+    
     def _make_request(self, method: str, endpoint: str, **kwargs) -> Optional[httpx.Response]:
         """
         Make an HTTP request with error handling and random user agent
@@ -123,9 +346,12 @@ class PetstoreTrafficSimulator:
         headers.update({
             "User-Agent": self._get_random_user_agent(),
             "Accept": "application/json",
-            "api-key-petstore": self.api_key,  # Ensure API key is always included
             "Content-Type": "application/json"
         })
+        
+        # Add authentication header
+        headers.update(self._get_auth_header())
+        
         kwargs['headers'] = headers
         
         # Set default timeout if not provided
@@ -826,6 +1052,7 @@ class PetstoreTrafficSimulator:
         """Generate a summary report of operations and errors"""
         # Get all logs from the file
         error_count = 0
+        auth_error_count = 0  # Track authentication errors separately
         operation_counts = {
             'pet': {'create': 0, 'update': 0, 'delete': 0, 'get': 0},
             'user': {'create': 0, 'update': 0, 'delete': 0, 'get': 0},
@@ -838,6 +1065,8 @@ class PetstoreTrafficSimulator:
                     # Count errors
                     if "ERROR" in line:
                         error_count += 1
+                        if "401" in line or "Unauthorized" in line or "API key" in line:
+                            auth_error_count += 1
                     
                     # Count operations
                     if "Created new pet" in line:
@@ -846,7 +1075,7 @@ class PetstoreTrafficSimulator:
                         operation_counts['pet']['update'] += 1
                     elif "Deleted pet" in line:
                         operation_counts['pet']['delete'] += 1
-                    elif "Retrieved pet" in line:
+                    elif "Retrieved pet" in line or "Found" in line and "pets" in line:
                         operation_counts['pet']['get'] += 1
                     elif "Created new user" in line:
                         operation_counts['user']['create'] += 1
@@ -854,7 +1083,7 @@ class PetstoreTrafficSimulator:
                         operation_counts['user']['update'] += 1
                     elif "Deleted user" in line:
                         operation_counts['user']['delete'] += 1
-                    elif "Retrieved user" in line:
+                    elif "Retrieved user" in line or "Logged in" in line:
                         operation_counts['user']['get'] += 1
                     elif "Created new order" in line:
                         operation_counts['order']['create'] += 1
@@ -862,27 +1091,77 @@ class PetstoreTrafficSimulator:
                         operation_counts['order']['update'] += 1
                     elif "Deleted order" in line:
                         operation_counts['order']['delete'] += 1
-                    elif "Retrieved order" in line:
+                    elif "Retrieved order" in line or "Retrieved inventory" in line:
                         operation_counts['order']['get'] += 1
-        
-            # Print summary report
-            logger.info("\n" + "="*50)
-            logger.info("SIMULATION SUMMARY REPORT")
-            logger.info("="*50)
-            logger.info(f"Total Errors: {error_count}")
             
-            logger.info("\nOperation Counts:")
+            # Calculate totals
+            entity_totals = {}
+            operation_type_totals = {'create': 0, 'update': 0, 'delete': 0, 'get': 0}
+            grand_total = 0
+            
             for entity, ops in operation_counts.items():
-                logger.info(f"\n{entity.upper()} Operations:")
-                for op, count in ops.items():
-                    logger.info(f"  {op.capitalize()}: {count}")
+                entity_total = sum(ops.values())
+                entity_totals[entity] = entity_total
+                grand_total += entity_total
+                
+                for op_type, count in ops.items():
+                    operation_type_totals[op_type] += count
             
-            logger.info("\nFinal State:")
-            logger.info(f"  Pets: {len(self.pet_ids)}")
-            logger.info(f"  Users: {len(self.usernames)}")
-            logger.info(f"  Orders: {len(self.order_ids)}")
-            logger.info("="*50)
-        
+            # Print summary report with better formatting
+            logger.info("\n" + "="*60)
+            logger.info(f"{'PETSTORE API SIMULATION SUMMARY REPORT':^60}")
+            logger.info("="*60)
+            
+            # Display error information with percentage
+            error_rate = (error_count / max(grand_total, 1)) * 100 if grand_total > 0 else 0
+            logger.info(f"\n{'ERRORS':^60}")
+            logger.info("-"*60)
+            logger.info(f"Total Operations: {grand_total}")
+            logger.info(f"Total Errors: {error_count} ({error_rate:.2f}% error rate)")
+            if auth_error_count > 0:
+                auth_error_rate = (auth_error_count / error_count) * 100
+                logger.info(f"Authentication Errors: {auth_error_count} ({auth_error_rate:.2f}% of all errors)")
+            
+            # Display operation summary by type
+            logger.info(f"\n{'OPERATIONS BY TYPE':^60}")
+            logger.info("-"*60)
+            for op_type, total in operation_type_totals.items():
+                percentage = (total / max(grand_total, 1)) * 100 if grand_total > 0 else 0
+                logger.info(f"{op_type.capitalize():10}: {total:5} ({percentage:6.2f}%)")
+            
+            # Display detailed operation counts by entity
+            logger.info(f"\n{'DETAILED OPERATIONS BY ENTITY':^60}")
+            logger.info("-"*60)
+            
+            for entity in ['pet', 'user', 'order']:
+                entity_total = entity_totals[entity]
+                entity_percent = (entity_total / max(grand_total, 1)) * 100 if grand_total > 0 else 0
+                logger.info(f"\n{entity.upper()} Operations: {entity_total} ({entity_percent:.2f}% of all operations)")
+                
+                for op, count in operation_counts[entity].items():
+                    op_percent = (count / max(entity_total, 1)) * 100 if entity_total > 0 else 0
+                    logger.info(f"  {op.capitalize():8}: {count:5} ({op_percent:6.2f}%)")
+            
+            # Display current state information
+            logger.info(f"\n{'CURRENT SYSTEM STATE':^60}")
+            logger.info("-"*60)
+            logger.info(f"{'Entity':15} {'Count':8}")
+            logger.info(f"{'Pets':15} {len(self.pet_ids):8}")
+            logger.info(f"{'Users':15} {len(self.usernames):8}")
+            logger.info(f"{'Orders':15} {len(self.order_ids):8}")
+            
+            # Show authentication method used
+            logger.info(f"\n{'AUTHENTICATION':^60}")
+            logger.info("-"*60)
+            if hasattr(self, 'jwt_tokens') and self.jwt_tokens:
+                logger.info(f"Method: JWT Tokens ({len(self.jwt_tokens)} tokens used)")
+                if auth_error_count > 0:
+                    logger.info(f"Note: {auth_error_count} authentication errors detected, some tokens may have expired.")
+            else:
+                logger.info("Method: API Key")
+                
+            logger.info("="*60)
+            
         except FileNotFoundError:
             logger.error("Log file not found - cannot generate summary report")
 
@@ -899,6 +1178,9 @@ if __name__ == "__main__":
     parser.add_argument("--parallel", type=int, default=0, help="Number of parallel threads (default: 0 - sequential)")
     parser.add_argument("--timeout", type=int, default=10, help="Request timeout in seconds (default: 10)")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
+    parser.add_argument("--use-jwt", action="store_true", help="Use JWT tokens for authentication")
+    parser.add_argument("--token-dir", default="petstore-api-keys/temp_tokens", 
+                      help="Directory for JWT tokens (default: petstore-api-keys/temp_tokens)")
     
     args = parser.parse_args()
     
@@ -906,13 +1188,21 @@ if __name__ == "__main__":
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
     
+    # Generate JWT tokens if requested
+    jwt_token_files = []
+    if args.use_jwt:
+        logger.info("Generating JWT tokens for authentication")
+        jwt_token_files = generate_jwt_tokens(args.duration, args.token_dir)
+        # No need for fallback check here as generate_jwt_tokens will exit if it fails
+    
     # Create and run simulator
     simulator = PetstoreTrafficSimulator(
         base_url=args.url,
         api_key=args.api_key,
         min_pets=args.min_pets,
         min_users=args.min_users,
-        min_orders=args.min_orders
+        min_orders=args.min_orders,
+        jwt_token_files=jwt_token_files
     )
     
     # Set the timeout
@@ -929,5 +1219,3 @@ if __name__ == "__main__":
             duration_minutes=args.duration,
             operations_per_minute=args.rate
         )
-    # Generate and print summary report
-    # simulator.generate_summary_report()
