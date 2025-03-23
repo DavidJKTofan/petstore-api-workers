@@ -21,8 +21,11 @@ function errorResponse(message, status = 400) {
 
 // Middleware for authentication (simple implementation)
 async function authenticate(request) {
+	// Still check for the presence of the header
 	const apiKey = request.headers.get('api-key-petstore');
+	
 	if (request.url.includes('/pet/') || request.url.includes('/store/inventory')) {
+		// Check if header exists but don't validate its contents
 		if (!apiKey || apiKey.trim() === '') {
 			return new Response('API key is required', {
 				status: 401,
@@ -32,6 +35,9 @@ async function authenticate(request) {
 				}
 			});
 		}
+		
+		/* 
+		// Actual validation is commented out as it will be handled by Cloudflare JWT Validation
 		// You might want to add additional validation here
 		// For example, checking against a list of valid API keys
 		const validApiKeys = ['your_api_key', 'special-key', 'test-key']; // Add your valid keys here, or better use Secrets.
@@ -44,8 +50,11 @@ async function authenticate(request) {
 				}
 			});
 		}
+		*/
 	}
-	return null; // Authentication passed
+	
+	// Authentication passed - actual JWT validation will be performed by Cloudflare API Shield
+	return null; 
 }
 
 // Route handlers for Pet endpoints
