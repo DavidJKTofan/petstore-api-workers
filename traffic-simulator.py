@@ -354,8 +354,25 @@ class PetstoreTrafficSimulator:
             "Content-Type": "application/json"
         })
         
-        # Add authentication header
-        headers.update(self._get_auth_header())
+        # Add authentication header only for endpoints that require it
+        requires_auth = False
+        
+        # Normalize endpoint for checking (remove leading slash if present)
+        normalized_endpoint = endpoint.lstrip('/')
+        
+        # Check if endpoint requires authentication
+        if (normalized_endpoint.startswith("pet") or 
+            "/pet" in endpoint or 
+            normalized_endpoint.startswith("store/inventory") or
+            "/store/inventory" in endpoint or
+            normalized_endpoint == "inventory"):
+            requires_auth = True
+            logger.debug(f"Adding authentication header for endpoint: {endpoint}")
+        else:
+            logger.debug(f"No authentication needed for endpoint: {endpoint}")
+        
+        if requires_auth:
+            headers.update(self._get_auth_header())
         
         kwargs['headers'] = headers
         
