@@ -86,23 +86,22 @@ def generate_jwt_tokens(duration_minutes: int, token_dir: str = "petstore-api-ke
             sys.exit(1)  # Exit if we can't create a key
     
     # Set different expiration times for different users to demonstrate token expiration
-    # Some tokens will expire during the simulation while others remain valid
-    # Base expiration = simulation duration + small buffer
+    # Some tokens will expire early during simulation to generate more auth errors
     base_expiration_seconds = duration_minutes * 60 + 60  # Add 1 minute buffer
     
-    # User configurations with varied expiration times
+    # User configurations with varied expiration times to create more auth errors
     users = [
-        # This token will expire during a longer simulation (about 75% through)
+        # This token will expire very early (35% through the simulation)
         {"username": "user1", "customer_type": "premium", "email": "user1@example.com", 
-         "expiration": int(duration_minutes * 60 * 0.75)},
+         "expiration": int(duration_minutes * 60 * 0.35)},
         
-        # This token will last the full simulation plus a small buffer
+        # This token will expire halfway through
         {"username": "user2", "customer_type": "standard", "email": "user2@example.com",
-         "expiration": base_expiration_seconds},
+         "expiration": int(duration_minutes * 60 * 0.5)},
         
-        # This token will last longer (for comparing behavior)
+        # This token will last the full simulation
         {"username": "user3", "customer_type": "free", "email": "user3@example.com",
-         "expiration": base_expiration_seconds * 2}
+         "expiration": base_expiration_seconds}
     ]
     
     token_files = []
@@ -1071,7 +1070,11 @@ class PetstoreTrafficSimulator:
                     # Count errors
                     if "ERROR" in line:
                         error_count += 1
-                        if "401" in line or "Unauthorized" in line or "API key" in line:
+                        # Improve detection of authentication errors to include 403 errors and JWT-related messages
+                        if any(auth_error in line for auth_error in [
+                            "401", "403", "Unauthorized", "Forbidden", "API key", 
+                            "authentication", "token", "JWT", "expired"
+                        ]):
                             auth_error_count += 1
                     
                     # Count operations
