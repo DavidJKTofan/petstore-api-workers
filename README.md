@@ -363,13 +363,13 @@ pip install authlib cryptography # for JWT Tokens
 - `--min-orders`: Minimum number of orders to maintain (default: 3)
 - `--parallel`: Number of parallel threads for concurrent operations (default: 0, which means sequential operation)
 
-Run with **JWT Tokens** only:
+Simulate run with **JWT Tokens** only (preferred):
 
 ```bash
 python traffic-simulator.py --url "https://petstore.automatic-demo.com/api/v3/" --duration 30 --rate 60 --min-pets 10 --min-users 10 --parallel 3 --use-jwt
 ```
 
-Run with **API Key** only:
+Simulate run with **API Key** only:
 
 ```bash
 python traffic-simulator.py --url "https://petstore.automatic-demo.com/api/v3/" --api-key "special-key" --duration 30 --rate 60 --min-pets 10 --min-users 10 --parallel 3
