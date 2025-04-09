@@ -23,7 +23,7 @@ This project attempts to implement the [Swagger Petstore API](https://github.com
 
 ### Quickstart
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cllearoudflare.com/?url=https://github.com/DavidJKTofan/petstore-api-workers)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/DavidJKTofan/petstore-api-workers)
 
 ### Setup
 
