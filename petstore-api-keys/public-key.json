@@ -3,7 +3,7 @@
     "use": "sig",
     "crv": "P-256",
     "kid": "petstore-ec256",
-    "x": "VeonNaXw1oEASI1RnvKKiTmdHH_JoTsWJhJSAXxA7JE",
-    "y": "LNwzo3kDU_O8P3741qzhrytQLyakaLggCcZdZ7FArmU",
+    "x": "JReKhikLOF_--tidE_LEKbedRC_e1LCJs_jLEH7po-U",
+    "y": "ln4VK53svyYDr6HBMBLhyRIWOk9Lp56luMcaaAipQdw",
     "alg": "ES256"
 }

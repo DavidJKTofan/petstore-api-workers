@@ -12,12 +12,18 @@ This project attempts to implement the [Swagger Petstore API](https://github.com
 
 > You can upload the `openapi.yaml` file to Cloudflare API Shield [Schema Validation](https://developers.cloudflare.com/api-shield/security/schema-validation/).
 
+> Upload the `public-private-keypair.json` from mkjwk.org generator to Cloudflare API Shield token configuration.
+
 ## Deployment
 
 ### Prerequisites
 
 - [Cloudflare account](https://developers.cloudflare.com/fundamentals/setup/account/create-account/)
 - [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/install-and-update/)
+
+### Quickstart
+
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cllearoudflare.com/?url=https://github.com/DavidJKTofan/petstore-api-workers)
 
 ### Setup
 

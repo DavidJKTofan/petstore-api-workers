@@ -2,7 +2,7 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "petstore-api",
 	"main": "src/index.js",
-	"compatibility_date": "2025-03-20",
+	"compatibility_date": "2025-04-09",
 	"observability": {
 		"enabled": true
 	},

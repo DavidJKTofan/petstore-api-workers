@@ -54,36 +54,12 @@ def generate_jwt_tokens(duration_minutes: int, token_dir: str = "petstore-api-ke
             break
     
     if not private_key_exists:
-        # Try to create the key using OpenSSL
-        try:
-            key_dir = os.path.dirname(private_key_paths[1])
-            if not os.path.exists(key_dir):
-                os.makedirs(key_dir, exist_ok=True)
-            
-            logger.info(f"Private key not found. Attempting to create one at {private_key_paths[1]}...")
-            
-            # Try to generate a key using openssl
-            result = subprocess.run(
-                ["openssl", "ecparam", "-genkey", "-name", "prime256v1", "-out", private_key_paths[1]],
-                capture_output=True,
-                text=True
-            )
-            
-            if result.returncode == 0 and os.path.exists(private_key_paths[1]):
-                logger.info(f"Successfully created private key at {private_key_paths[1]}")
-                private_key_path = private_key_paths[1]
-                private_key_exists = True
-            else:
-                logger.error(f"Failed to create private key: {result.stderr}")
-                logger.error("Cannot generate JWT tokens without a private key")
-                logger.error("Please create a private key as described in the README")
-                sys.exit(1)  # Exit if we can't create a key
-                
-        except Exception as e:
-            logger.error(f"Error creating private key: {str(e)}")
-            logger.error("Cannot generate JWT tokens without a private key")
-            logger.error("Please create a private key as described in the README")
-            sys.exit(1)  # Exit if we can't create a key
+        logger.error("Private key not found in any of these locations:")
+        for path in private_key_paths:
+            logger.error(f"- {path}")
+        logger.error("\nTo use JWT authentication, you must:")
+        logger.error("Generate a private key using mkjwk.org")
+        sys.exit(1)
     
     # Set different expiration times for different users to demonstrate token expiration
     # Some tokens will expire early during simulation to generate more auth errors
@@ -232,13 +208,20 @@ class PetstoreTrafficSimulator:
         
         # Load JWT tokens if provided
         self.jwt_tokens = []
+        self.jwt_token_info = {}  # Track token info for logging
         if jwt_token_files:
             for token_file in jwt_token_files:
                 try:
                     with open(token_file, 'r') as f:
                         token = f.read().strip()
+                        # Extract username from filename (format: username_type_timestamp.jwt)
+                        username = os.path.basename(token_file).split('_')[0]
                         self.jwt_tokens.append(token)
-                        logger.info(f"Loaded JWT token from {token_file}")
+                        self.jwt_token_info[token] = {
+                            'username': username,
+                            'file': os.path.basename(token_file)
+                        }
+                        logger.info(f"Loaded JWT token for {username} from {os.path.basename(token_file)}")
                 except Exception as e:
                     logger.error(f"Failed to load token from {token_file}: {str(e)}")
         
@@ -323,6 +306,10 @@ class PetstoreTrafficSimulator:
         if self.jwt_tokens:
             # Use a random JWT token
             token = random.choice(self.jwt_tokens)
+            token_info = self.jwt_token_info.get(token, {})
+            username = token_info.get('username', 'unknown')
+            file = token_info.get('file', 'unknown')
+            logger.debug(f"Using JWT token for user {username} from {file}")
             return {"api-key-petstore": token}
         elif self.api_key:
             # Use API key if available
@@ -382,7 +369,10 @@ class PetstoreTrafficSimulator:
             
         try:
             logger.debug(f"Making {method.upper()} request to {url}")
-            logger.debug(f"Headers: {headers}")
+            if requires_auth and self.jwt_tokens:
+                token = kwargs['headers'].get('api-key-petstore', '')
+                token_info = self.jwt_token_info.get(token, {})
+                logger.debug(f"Using token for user {token_info.get('username', 'unknown')} from {token_info.get('file', 'unknown')}")
             
             response = getattr(self.session, method.lower())(url, **kwargs)
             
@@ -436,6 +426,7 @@ class PetstoreTrafficSimulator:
                                 self.order_ids.remove(order_id)
                             break
             
+                logger.error(f"Authentication failed (HTTP {response.status_code}) using token:")
             return None
         except Exception as e:
             logger.error(f"Unexpected error: {method} {url} - {str(e)}")

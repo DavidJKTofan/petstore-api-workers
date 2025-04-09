@@ -4,6 +4,7 @@ import json
 import argparse
 import os
 import sys
+import logging
 from authlib.jose import jwt
 from typing import Dict, List, Optional, Any
 from cryptography.hazmat.primitives import serialization
@@ -143,13 +144,16 @@ class TokenGenerator:
             ValueError: If customer not found
         """
         if username not in self.customers:
+            logger.error(f"Failed to generate token: Customer {username} not found")
             raise ValueError(f"Customer {username} not found")
         
         customer = self.customers[username]
+        token_id = f"{username}_{int(time.time())}"
         
         header = {
             "alg": self.algorithm,
-            "kid": self.key_id
+            "kid": self.key_id,
+            "jti": token_id  # Add unique token ID
         }
         
         # Standard JWT claims + customer and customer_type as top-level claims
@@ -169,8 +173,11 @@ class TokenGenerator:
         try:
             # Encode the JWT
             token = jwt.encode(header, payload, self.private_key)
-            return token.decode("utf-8")
+            decoded = token.decode("utf-8")
+            logger.info(f"Generated JWT token: ID={token_id}, User={username}, Type={customer.customer_type.value}")
+            return decoded
         except Exception as e:
+            logger.error(f"Error generating token for {username}: {e}")
             print(f"Error generating token: {e}")
             print("This may be due to an incompatible private key format.")
             print("Please ensure your private key is a valid EC key for ES256 algorithm.")
@@ -253,6 +260,17 @@ def parse_args():
 
 # Usage example
 if __name__ == "__main__":
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler("token_generator.log"),
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
+    logger = logging.getLogger(__name__)
+
     # Parse command line arguments
     args = parse_args()
     
@@ -365,4 +383,4 @@ if __name__ == "__main__":
                 print(payload.get("customer"))
     except Exception as e:
         print(f"Error: {e}")
-        sys.exit(1) 
+        sys.exit(1)
