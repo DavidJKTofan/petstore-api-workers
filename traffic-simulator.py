@@ -426,7 +426,14 @@ class PetstoreTrafficSimulator:
                                 self.order_ids.remove(order_id)
                             break
             
+            # Log auth failures with token info
+            if response.status_code in [401, 403] and self.jwt_tokens:
+                token = kwargs['headers'].get('api-key-petstore', '')
+                token_info = self.jwt_token_info.get(token, {})
                 logger.error(f"Authentication failed (HTTP {response.status_code}) using token:")
+                logger.error(f"  User: {token_info.get('username', 'unknown')}")
+                logger.error(f"  File: {token_info.get('file', 'unknown')}")
+            
             return None
         except Exception as e:
             logger.error(f"Unexpected error: {method} {url} - {str(e)}")
